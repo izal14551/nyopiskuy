@@ -1,0 +1,24 @@
+import db from "@/lib/db";
+import { NextResponse } from "next/server";
+
+export async function GET() {
+  try {
+    const result = await db.query(`
+  SELECT DISTINCT ON (m.category)
+    m.id, m.name, m.category, m.image_url,
+    SUM(oi.qty) AS total_beli
+  FROM order_items oi
+  JOIN menu m ON m.id = oi.menu_id
+  GROUP BY m.id, m.name, m.category, m.image_url
+  ORDER BY m.category, total_beli DESC
+`);
+
+    return NextResponse.json(result.rows);
+  } catch (error) {
+    console.error("Best seller error:", error);
+    return NextResponse.json(
+      { error: "Gagal mengambil data best seller" },
+      { status: 500 }
+    );
+  }
+}
