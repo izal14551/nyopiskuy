@@ -30,6 +30,17 @@ export default function FinanceReportPage() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
 
+  const now = new Date();
+  const currentMonth = now.getMonth(); // 0-indexed
+  const currentYear = now.getFullYear();
+  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+
+  // Fungsi bantu untuk cek apakah tanggal dalam bulan berjalan
+  const isSameMonth = (date) => {
+    const d = new Date(date);
+    return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       const res = await fetch("/api/orders");
@@ -45,57 +56,77 @@ export default function FinanceReportPage() {
     const createdAt = new Date(order.created_at);
     const start = startDate ? new Date(startDate) : null;
     const end = endDate ? new Date(endDate) : null;
-    return (!start || createdAt >= start) && (!end || createdAt <= end);
+
+    return (
+      (!start || createdAt >= start) &&
+      (!end || createdAt <= end) &&
+      isSameMonth(createdAt)
+    );
   });
 
   const total = filteredOrders.reduce((acc, curr) => acc + curr.total, 0);
 
-  // Group & format data untuk chart
-  const chartData = (() => {
-    const grouped = {};
-    filteredOrders.forEach((o) => {
-      const date = new Date(o.created_at).toLocaleDateString("id-ID");
-      grouped[date] = (grouped[date] || 0) + o.total;
-    });
+  // Buat label tanggal dari tanggal 1 sampai akhir bulan
+  const fullMonthLabels = Array.from({ length: daysInMonth }, (_, i) => {
+    const date = new Date(currentYear, currentMonth, i + 1);
+    return date.toLocaleDateString("id-ID");
+  });
 
-    const labels = Object.keys(grouped).sort(
-      (a, b) => new Date(a) - new Date(b)
-    );
+  // Total per tanggal
+  const dailyTotals = {};
+  filteredOrders.forEach((o) => {
+    const date = new Date(o.created_at).toLocaleDateString("id-ID");
+    dailyTotals[date] = (dailyTotals[date] || 0) + o.total;
+  });
 
-    return {
-      labels,
-      datasets: [
-        {
-          label: "Pendapatan Harian",
-          data: labels.map((d) => grouped[d]),
-          fill: false,
-          borderColor: "#16a34a",
-          backgroundColor: "#16a34a",
-          tension: 0.3
+  const chartData = {
+    labels: fullMonthLabels,
+    datasets: [
+      {
+        label: "Pendapatan Harian",
+        data: fullMonthLabels.map((date) => dailyTotals[date] || 0),
+        fill: false,
+        borderColor: "#16a34a",
+        backgroundColor: "#16a34a",
+        tension: 0.3
+      }
+    ]
+  };
+  const chartOptions = {
+    responsive: true,
+    plugins: {
+      legend: {
+        position: "top"
+      },
+      title: {
+        display: false
+      }
+    },
+    scales: {
+      y: {
+        beginAtZero: false,
+        min: 100000,
+        ticks: {
+          callback: (value) =>
+            `Rp ${value.toLocaleString("id-ID", { maximumFractionDigits: 0 })}`
         }
-      ]
-    };
-  })();
+      }
+    }
+  };
 
   return (
     <div>
-      {" "}
       <AdminSidebar />
       <div className="p-4">
         <h1 className="text-2xl font-bold mb-4">Laporan Keuangan</h1>
 
-        {/* Filter Tanggal Horizontal Seimbang */}
+        {/* Filter Tanggal */}
         <div className="mb-6 flex flex-row items-center gap-6 flex-wrap md:flex-nowrap">
-          {/* Dari Tanggal */}
           <div className="flex flex-col w-full md:w-1/4">
-            <label
-              htmlFor="startDate"
-              className="text-sm font-medium text-gray-600 mb-1"
-            >
+            <label className="text-sm font-medium text-gray-600 mb-1">
               Dari Tanggal
             </label>
             <input
-              id="startDate"
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
@@ -103,16 +134,11 @@ export default function FinanceReportPage() {
             />
           </div>
 
-          {/* Sampai Tanggal */}
           <div className="flex flex-col w-full md:w-1/4">
-            <label
-              htmlFor="endDate"
-              className="text-sm font-medium text-gray-600 mb-1"
-            >
+            <label className="text-sm font-medium text-gray-600 mb-1">
               Sampai Tanggal
             </label>
             <input
-              id="endDate"
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
@@ -138,7 +164,7 @@ export default function FinanceReportPage() {
         <div className="bg-white p-4 rounded shadow mb-6">
           <h2 className="font-bold mb-2">Grafik Pendapatan</h2>
           {chartData.labels.length > 0 ? (
-            <Line data={chartData} />
+            <Line data={chartData} options={chartOptions} />
           ) : (
             <p className="text-gray-400 text-sm">
               Belum ada pendapatan saat itu.

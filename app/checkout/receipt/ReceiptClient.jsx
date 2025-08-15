@@ -155,9 +155,6 @@ export default function ReceiptClient() {
         <button onClick={() => window.print()} className="btn">
           Cetak Struk
         </button>
-        <button onClick={() => router.back()} className="btn ghost">
-          Kembali
-        </button>
       </div>
       <style jsx>{`
         .page {

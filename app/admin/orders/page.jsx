@@ -154,7 +154,7 @@ export default function ManageOrdersPage() {
                   {order.status}
                 </span>
 
-                <div className="flex gap-2">
+                <div className="flex gap-2 justify-between items-center">
                   {/* Tombol CETAK STRUK */}
                   <a
                     href={buildReceiptUrl(order)}
