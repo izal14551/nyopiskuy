@@ -49,14 +49,16 @@ export default function SuccessPage() {
       </svg>
 
       <h1 className="text-2xl font-bold text-green-700 mb-2">
-        Pembayaran Berhasil!
+        Pesanan Berhasil!
       </h1>
 
       <p className="text-green-700 text-center font-medium mt-4">
         Pesanan Anda Akan diantar dalam ± {totalEstimatedMinutes} menit
       </p>
 
-      <p className="text-gray-600 mb-6">Terima kasih atas pesanan kamu 🎉</p>
+      <p className="text-gray-600 mb-6">
+        Terima kasih atas pesanan nya jangan lupa order lagi ya
+      </p>
 
       <Link
         href="/"
