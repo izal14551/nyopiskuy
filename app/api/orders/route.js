@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 
 export async function POST(req) {
   const body = await req.json();
-  const { customerName, paymentMethod, cart, total } = body;
+  const { customerName, paymentMethod, cart, total, orderNote } = body;
 
   // Hitung estimasi total waktu penyajian
   const estimated = cart.reduce(
@@ -15,9 +15,16 @@ export async function POST(req) {
     // Simpan pesanan ke tabel orders, termasuk estimated_time
     const orderResult = await db.query(
       `INSERT INTO orders 
-        (customer_name, payment_method, total, status, estimated_time) 
-       VALUES ($1, $2, $3, $4, $5) RETURNING id`,
-      [customerName, paymentMethod, total, "Diproses", estimated]
+        (customer_name, payment_method, total, status, estimated_time, note) 
+       VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
+      [
+        customerName,
+        paymentMethod,
+        total,
+        "Diproses",
+        estimated,
+        orderNote ?? null
+      ]
     );
 
     const orderId = orderResult.rows[0].id;

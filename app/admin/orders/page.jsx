@@ -62,7 +62,20 @@ export default function ManageOrdersPage() {
                   </div>
                 ))}
               </div>
+              <div className="mt-2 text-sm pb-1 flex flex-wrap items-start gap-x-3 gap-y-1">
+                {/* NOTE – biar bisa wrap & aman untuk teks panjang */}
+                <div className="min-w-0 flex-1">
+                  <span className="font-medium">Note: </span>
+                  <span className="whitespace-pre-wrap break-words">
+                    {order.note?.trim() ? order.note : "—"}
+                  </span>
+                </div>
 
+                {/* PAYMENT – tidak menyusut, pindah ke baris bawah kalau ruang sempit */}
+                <div className="font-bold shrink-0">
+                  Pembayaran Via: {order.payment_method}
+                </div>
+              </div>
               <div className="mt-2 text-right font-bold text-green-800">
                 Total: Rp {order.total.toLocaleString("id-ID")}
               </div>

@@ -3,13 +3,13 @@
 import { useState, useEffect } from "react";
 import BestSellerCard from "./BestSellerCard";
 import Image from "next/image";
-const KEDAI_LAT = -6.735; // Ganti sesuai koordinat kedai
-const KEDAI_LNG = 108.552;
-const MAX_DISTANCE_KM = 0.2; // 200 meter
+// const KEDAI_LAT = -7.438546216345842; // ganti ke koordinat kedai kamu
+// const KEDAI_LNG = 109.26563009442012;
+// const MAX_DISTANCE_KM = 0.2; // 200 meter
 
 export default function MenuGrid({ categories, menuItems }) {
   const [activeCategory, setActiveCategory] = useState("");
-  function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
+  /*  function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
     const R = 6371;
     const dLat = (lat2 - lat1) * (Math.PI / 180);
     const dLon = (lon2 - lon1) * (Math.PI / 180);
@@ -37,8 +37,7 @@ export default function MenuGrid({ categories, menuItems }) {
           );
 
           if (distance > MAX_DISTANCE_KM) {
-            alert("Kamu harus berada di dekat kedai untuk melihat menu.");
-            window.location.href = "/";
+            window.location.href = "/location-required";
           }
         },
         (err) => {
@@ -50,7 +49,7 @@ export default function MenuGrid({ categories, menuItems }) {
       alert("Peramban tidak mendukung Geolocation.");
       window.location.href = "/location-required";
     }
-  }, []);
+  }, []); */
 
   const [selectedItem, setSelectedItem] = useState(null);
   const closeModal = () => setSelectedItem(null);
@@ -59,6 +58,7 @@ export default function MenuGrid({ categories, menuItems }) {
   const [animateCart, setAnimateCart] = useState(false);
   const [removingItemId, setRemovingItemId] = useState(null);
   const [customerName, setCustomerName] = useState("");
+  const [orderNote, setOrderNote] = useState("");
 
   useEffect(() => {
     localStorage.setItem("cart", JSON.stringify(cart));
@@ -67,13 +67,23 @@ export default function MenuGrid({ categories, menuItems }) {
     localStorage.setItem("customerName", customerName);
   }, [customerName]);
 
+  useEffect(() => {
+    const storedNote = localStorage.getItem("orderNote");
+    if (storedNote) setOrderNote(storedNote);
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem("orderNote", orderNote);
+  }, [orderNote]);
+
   const [bestSellerIds, setBestSellerIds] = useState([]);
 
   useEffect(() => {
     const fetchBestSellers = async () => {
       const res = await fetch("/api/bestseller");
       const data = await res.json();
-      const ids = data.map((m) => m.id);
+      const list = Array.isArray(data) ? data : [];
+      const ids = list.map((m) => m.id);
       setBestSellerIds(ids);
     };
     fetchBestSellers();
@@ -86,19 +96,10 @@ export default function MenuGrid({ categories, menuItems }) {
 
   const addToCart = (menuItem, temperature, sweetness) => {
     setCart((prev) => {
-      const existing = prev.find(
-        (item) =>
-          item.id === menuItem.id &&
-          item.temperature === temperature &&
-          item.sweetness === sweetness
-      );
+      const existing = prev.find((item) => item.id === menuItem.id);
       if (existing) {
         return prev.map((item) =>
-          item.id === menuItem.id &&
-          item.temperature === temperature &&
-          item.sweetness === sweetness
-            ? { ...item, qty: item.qty + 1 }
-            : item
+          item.id === menuItem.id ? { ...item, qty: item.qty + 1 } : item
         );
       } else {
         return [
@@ -106,8 +107,7 @@ export default function MenuGrid({ categories, menuItems }) {
           {
             ...menuItem,
             qty: 1,
-            temperature,
-            sweetness,
+
             estimated_time: menuItem.estimated_time || 5
           }
         ];
@@ -151,24 +151,19 @@ export default function MenuGrid({ categories, menuItems }) {
   return (
     <div className="min-h-screen bg-white pb-20">
       {/* Navbar */}
-      <div className="w-full flex justify-between items-center px-4 py-3 shadow-md  sticky top-0 bg-white z-50">
-        {/* Judul Tengah */}
-        <h1 className="text-xl font-bold tracking-wide text-center">
+      <div className="w-full grid grid-cols-3 items-center px-4 py-3 shadow-md sticky top-0 bg-green-800 z-50">
+        {/* spacer kiri (biar judul tetap center) */}
+        <div />
+
+        {/* judul benar-benar di tengah */}
+        <h1 className="text-xl font-bold tracking-wide text-center text-white">
           NYOPISKUY
         </h1>
 
-        {/* Logo kanan */}
-        <Image
-          src="/logo.png" // pastikan ini ada di public/logo.png
-          alt="Logo"
-          width={32}
-          height={32}
-        />
-      </div>
-
-      {/* Header PROMO */}
-      <div className="bg-green-900 text-white text-center py-6">
-        <h1 className="text-2xl font-bold">PROMO</h1>
+        {/* logo kanan */}
+        <div className="justify-self-end">
+          <Image src="/logo-putih.png" alt="Logo" width={32} height={32} />
+        </div>
       </div>
 
       {/* Kategori */}
@@ -214,7 +209,7 @@ export default function MenuGrid({ categories, menuItems }) {
               {/* Gambar + Badge */}
               <div className="relative">
                 <img
-                  src={item.image_url}
+                  src={item.image_url ?? `/api/menu/image/${item.id}`}
                   alt={item.name}
                   className={`rounded-md w-full h-28 object-cover ${
                     item.sold_out ? "grayscale opacity-70" : ""
@@ -332,7 +327,9 @@ export default function MenuGrid({ categories, menuItems }) {
             </button>
 
             <img
-              src={selectedItem.image_url}
+              src={
+                selectedItem.image_url ?? `/api/menu/image/${selectedItem.id}`
+              }
               alt={selectedItem.name}
               className="w-full h-60 object-cover rounded mb-2"
             />
@@ -442,6 +439,18 @@ export default function MenuGrid({ categories, menuItems }) {
                       .reduce((total, item) => total + item.price * item.qty, 0)
                       .toLocaleString("id-ID")}
                   </span>
+                </div>
+
+                <div className="mt-2 ">
+                  <label className="text-sm font-medium block mb-1">
+                    Catatan Pesanan (opsional)
+                  </label>
+                  <textarea
+                    value={orderNote}
+                    onChange={(e) => setOrderNote(e.target.value)}
+                    placeholder="Catatan untuk seluruh pesanan (mis: less sugar semua, tanpa sedotan)"
+                    className="w-full border rounded px-3 py-2 text-sm resize-y  placeholder:text-gray-400"
+                  />
                 </div>
 
                 <button

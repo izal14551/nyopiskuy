@@ -32,8 +32,35 @@ export default function ManageMenuPage() {
   }, []);
 
   const handleToggleSoldOut = async (id) => {
-    await fetch(`/api/menu/${id}/soldout`, { method: "PATCH" });
-    fetchMenus(); // refresh
+    setMenus((prev) =>
+      prev.map((m) => (m.id === id ? { ...m, sold_out: !m.sold_out } : m))
+    );
+    try {
+      const res = await fetch(`/api/menu/${id}/soldout`, {
+        method: "PATCH",
+        cache: "no-store"
+      });
+      if (!res.ok) {
+        setMenus((prev) =>
+          prev.map((m) => (m.id === id ? { ...m, sold_out: !m.sold_out } : m))
+        );
+        console.error("Gagal toggle sold out");
+        return;
+      }
+      const data = await res.json().catch(() => ({}));
+      if (typeof data.sold_out === "boolean") {
+        setMenus((prev) =>
+          prev.map((m) => (m.id === id ? { ...m, sold_out: data.sold_out } : m))
+        );
+      } else {
+        fetchMenus();
+      }
+    } catch (e) {
+      setMenus((prev) =>
+        prev.map((m) => (m.id === id ? { ...m, sold_out: !m.sold_out } : m))
+      );
+      console.error("Error toggle sold out:", e);
+    }
   };
 
   const handleDelete = async (id) => {
@@ -76,8 +103,8 @@ export default function ManageMenuPage() {
                 }
                 className={`px-4 py-2 rounded-full text-sm ${
                   activeCategory === cat
-                    ? "bg-black text-white"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    ? "bg-green-900 text-white"
+                    : "bg-gray-100 text-gray-700 hover:bg-green-100"
                 }`}
               >
                 {cat}
@@ -96,7 +123,7 @@ export default function ManageMenuPage() {
               <div>
                 <div className="relative">
                   <img
-                    src={menu.image_url}
+                    src={`/api/menu/image/${menu.id}`}
                     alt={menu.name}
                     className={`rounded-lg w-full object-cover h-32 mb-2 ${
                       menu.sold_out ? "grayscale opacity-70" : ""

@@ -1,15 +1,22 @@
-import { NextResponse } from "next/server";
 import db from "@/lib/db";
-import { writeFile } from "fs/promises";
-import path from "path";
-import fs from "fs";
+import { NextResponse } from "next/server";
 
-// GET: ambil data menu berdasarkan ID
-export async function GET(req, context) {
-  const { id } = await context.params;
+export const runtime = "nodejs"; // penting jika project default ke edge
+
+export async function GET(req, ctx) {
+  const { id: idRaw } = await ctx.params;
+  const id = Number.parseInt(idRaw, 10);
+  if (!Number.isFinite(id)) {
+    return NextResponse.json({ error: "ID tidak valid" }, { status: 400 });
+  }
 
   try {
-    const result = await db.query("SELECT * FROM menu WHERE id = $1", [id]);
+    const result = await db.query(
+      `SELECT id, name, description, price, category, estimated_time
+       FROM menu
+       WHERE id = $1`,
+      [id]
+    );
 
     if (result.rows.length === 0) {
       return NextResponse.json(
@@ -19,105 +26,85 @@ export async function GET(req, context) {
     }
 
     return NextResponse.json(result.rows[0]);
-  } catch (error) {
-    console.error("GET error:", error);
-    return NextResponse.json({ error: "Gagal ambil menu" }, { status: 500 });
+  } catch (err) {
+    console.error("GET error:", err);
+    return NextResponse.json({ error: "Terjadi kesalahan" }, { status: 500 });
   }
 }
 
-// POST: update data + optional image
-export async function POST(req, context) {
-  const { id } = await context.params;
-  const formData = await req.formData();
-
-  const name = formData.get("name");
-  const description = formData.get("description");
-  const price = parseInt(formData.get("price"));
-  const category = formData.get("category");
-  const image = formData.get("image"); // file
-  const imageName = formData.get("imageName"); // fallback
-
-  let imageUrl = imageName || null;
-
-  // Jika upload baru
-  if (image && typeof image === "object") {
-    const bytes = await image.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-    const fileName = `${Date.now()}_${image.name}`;
-    const filePath = path.join(process.cwd(), "public", "images", fileName);
-
-    await writeFile(filePath, buffer);
-
-    imageUrl = `/images/${fileName}`;
-  }
-  console.log("imageName dari formData:", imageName);
-
-  if (imageName) {
-    const cleanName = imageName.replace("/images/", "").trim();
-    const oldFilePath = path.join(process.cwd(), "public", "images", cleanName);
-
-    console.log("🧹 Mencoba menghapus file:");
-    console.log("- imageName:", imageName);
-    console.log("- cleanName:", cleanName);
-    console.log("- path:", oldFilePath);
-
-    try {
-      await fs.promises.unlink(oldFilePath);
-      console.log("✅ File berhasil dihapus:", cleanName);
-    } catch (err) {
-      console.warn("⚠️ Gagal menghapus file:", cleanName);
-      console.warn("Alasan:", err.message);
-    }
+export async function POST(req, ctx) {
+  const { id: idRaw } = await ctx.params;
+  const id = Number.parseInt(idRaw, 10);
+  if (!Number.isFinite(id)) {
+    return NextResponse.json({ error: "ID tidak valid" }, { status: 400 });
   }
 
   try {
-    await db.query(
-      "UPDATE menu SET name=$1, description=$2, price=$3, category=$4, image_url=$5 WHERE id=$6",
-      [name, description, price, category, imageUrl, id]
-    );
+    const formData = await req.formData();
 
-    return NextResponse.json({ message: "Menu berhasil diupdate" });
+    const name = formData.get("name")?.toString().trim() ?? "";
+    const description = formData.get("description")?.toString().trim() ?? "";
+    const price = Number.parseInt(formData.get("price"), 10);
+    const category = formData.get("category")?.toString().trim() ?? "";
+    const estimated_time = Number.parseInt(formData.get("estimated_time"), 10);
+    const imageFile = formData.get("image");
+
+    if (!Number.isFinite(price) || !Number.isFinite(estimated_time)) {
+      return NextResponse.json(
+        { error: "Harga atau estimasi waktu tidak valid" },
+        { status: 400 }
+      );
+    }
+
+    // Jika ada file gambar yang benar-benar diunggah
+    if (imageFile instanceof Blob && imageFile.size > 0) {
+      const buffer = Buffer.from(await imageFile.arrayBuffer());
+      await db.query(
+        `UPDATE menu
+         SET name=$1, description=$2, price=$3, category=$4, estimated_time=$5, image=$6
+         WHERE id=$7`,
+        [name, description, price, category, estimated_time, buffer, id]
+      );
+    } else {
+      await db.query(
+        `UPDATE menu
+         SET name=$1, description=$2, price=$3, category=$4, estimated_time=$5
+         WHERE id=$6`,
+        [name, description, price, category, estimated_time, id]
+      );
+    }
+
+    return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Update error:", error);
-    return NextResponse.json({ error: "Gagal update menu" }, { status: 500 });
+    return NextResponse.json(
+      { success: false, message: "Gagal update menu" },
+      { status: 500 }
+    );
   }
 }
-export async function DELETE(_, context) {
-  const { id } = await context.params;
+
+export async function DELETE(req, ctx) {
+  const { id: idRaw } = await ctx.params;
+  const id = Number.parseInt(idRaw, 10);
+  if (!Number.isFinite(id)) {
+    return NextResponse.json({ error: "ID tidak valid" }, { status: 400 });
+  }
 
   try {
-    // Ambil data menu terlebih dahulu untuk tahu nama gambar
-    const result = await db.query("SELECT image_url FROM menu WHERE id = $1", [
-      id
-    ]);
-
-    if (result.rows.length === 0) {
+    // Opsional: cek keberadaan data
+    const result = await db.query("SELECT 1 FROM menu WHERE id = $1", [id]);
+    if (result.rowCount === 0) {
       return NextResponse.json(
         { error: "Menu tidak ditemukan" },
         { status: 404 }
       );
     }
 
-    const imageUrl = result.rows[0].image_url;
-    const fileName = imageUrl?.replace("/images/", "");
-
-    // Hapus dari database
     await db.query("DELETE FROM menu WHERE id = $1", [id]);
-
-    // Hapus file dari /public/images/
-    if (fileName) {
-      const imagePath = path.join(process.cwd(), "public", "images", fileName);
-      try {
-        await fs.promises.unlink(imagePath);
-        console.log("🗑️ Gambar dihapus:", imagePath);
-      } catch (err) {
-        console.warn("⚠️ Gagal menghapus gambar:", err.message);
-      }
-    }
-
     return NextResponse.json({ message: "Menu berhasil dihapus" });
   } catch (err) {
-    console.error("❌ Gagal hapus menu:", err.message);
+    console.error("❌ Gagal hapus menu:", err);
     return NextResponse.json(
       { error: "Gagal menghapus menu" },
       { status: 500 }

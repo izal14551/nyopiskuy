@@ -4,16 +4,21 @@ import { NextResponse } from "next/server";
 export async function GET() {
   try {
     const result = await db.query(`
-  SELECT DISTINCT ON (m.category)
-    m.id, m.name, m.category, m.image_url,
-    SUM(oi.qty) AS total_beli
-  FROM order_items oi
-  JOIN menu m ON m.id = oi.menu_id
-  GROUP BY m.id, m.name, m.category, m.image_url
-  ORDER BY m.category, total_beli DESC
-`);
+    SELECT DISTINCT ON (m.category)
+      m.id, m.name, m.category,
+      SUM(oi.qty) AS total_beli
+    FROM order_items oi
+    JOIN menu m ON m.id = oi.menu_id
+    GROUP BY m.id, m.name, m.category
+    ORDER BY m.category, total_beli DESC
+  `);
 
-    return NextResponse.json(result.rows);
+    const rowsWithUrl = result.rows.map((r) => ({
+      ...r,
+      image_url: `/api/menu/image/${r.id}`
+    }));
+
+    return NextResponse.json(rowsWithUrl);
   } catch (error) {
     console.error("Best seller error:", error);
     return NextResponse.json(

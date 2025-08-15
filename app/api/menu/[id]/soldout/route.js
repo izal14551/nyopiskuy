@@ -3,8 +3,11 @@ import db from "@/lib/db";
 
 // PATCH: Toggle sold_out
 export async function PATCH(_, context) {
-  const { id } = await context.params;
-
+  const { id: idRaw } = await context.params;
+  const id = Number.parseInt(idRaw, 10);
+  if (!Number.isFinite(id)) {
+    return NextResponse.json({ error: "ID tidak valid" }, { status: 400 });
+  }
   try {
     // Ambil status saat ini
     const result = await db.query("SELECT sold_out FROM menu WHERE id = $1", [

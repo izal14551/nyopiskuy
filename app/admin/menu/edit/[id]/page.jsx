@@ -1,21 +1,21 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { FiCamera } from "react-icons/fi";
 import CropImageModal from "../../add/components/CropImageModal";
-import { use } from "react";
 
-export default function EditMenuPage(props) {
-  const params = use(props.params);
-  const { id } = params;
+export default function EditMenuPage() {
+  const params = useParams();
+  const id = params?.id;
   const router = useRouter();
 
   const [form, setForm] = useState({
     name: "",
     description: "",
     price: "",
-    category: ""
+    category: "",
+    estimated_time: ""
   });
 
   const [croppedImage, setCroppedImage] = useState(null);
@@ -29,6 +29,8 @@ export default function EditMenuPage(props) {
   const [newCategory, setNewCategory] = useState("");
 
   useEffect(() => {
+    if (!id) return;
+
     const fetchAll = async () => {
       try {
         const [menuRes, catRes] = await Promise.all([
@@ -43,10 +45,12 @@ export default function EditMenuPage(props) {
           name: menuData.name ?? "",
           description: menuData.description ?? "",
           price: menuData.price ?? "",
-          category: menuData.category ?? ""
+          category: menuData.category ?? "",
+          estimated_time: menuData.estimated_time?.toString() ?? ""
         });
-        setOriginalImage(menuData.image_url);
-        setCroppedImage(menuData.image_url);
+        setCroppedImage(`/api/menu/image/${id}`);
+        setOriginalImage(`/api/menu/image/${id}`);
+
         setCategories(Array.isArray(catData) ? catData : []);
 
         console.log("✅ Kategori berhasil:", catData);
@@ -92,10 +96,7 @@ export default function EditMenuPage(props) {
         type: "image/jpeg"
       });
 
-      formData.append("image", file);
-      formData.append("imageName", originalImage);
-    } else {
-      formData.append("imageName", originalImage);
+      formData.append("image", file); // ✅ kirim gambar baru
     }
 
     const res = await fetch(`/api/menu/${id}`, {
@@ -187,6 +188,21 @@ export default function EditMenuPage(props) {
             />
           </div>
         )}
+
+        <div>
+          <label className="font-semibold block mb-1">
+            Estimasi Waktu (menit)
+          </label>
+          <input
+            type="number"
+            name="estimated_time"
+            value={form.estimated_time ?? ""}
+            onChange={handleChange}
+            className="w-full px-4 py-2 bg-gray-100 rounded"
+            required
+            min={0}
+          />
+        </div>
 
         {/* Upload Gambar */}
         <div>
