@@ -3,8 +3,8 @@
 import { useState, useEffect } from "react";
 import BestSellerCard from "./BestSellerCard";
 import Image from "next/image";
-const KEDAI_LAT = -7.438546216345842; // ganti ke koordinat kedai kamu
-const KEDAI_LNG = 109.26563009442012;
+const KEDAI_LAT = -7.399736705593383; // ganti ke koordinat kedai kamu
+const KEDAI_LNG = 109.24417117975878;
 const MAX_DISTANCE_KM = 0.2; // 200 meter
 
 export default function MenuGrid({ categories, menuItems }) {
