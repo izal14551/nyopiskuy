@@ -3,13 +3,13 @@
 import { useState, useEffect } from "react";
 import BestSellerCard from "./BestSellerCard";
 import Image from "next/image";
-const KEDAI_LAT = -7.400004872608103;
-const KEDAI_LNG = 109.2442127023531;
-const MAX_DISTANCE_KM = 0.2;
+// const KEDAI_LAT = -7.400004872608103;
+// const KEDAI_LNG = 109.2442127023531;
+// const MAX_DISTANCE_KM = 0.2;
 
 export default function MenuGrid({ categories, menuItems }) {
   const [activeCategory, setActiveCategory] = useState("");
-  function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
+  /* function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
     const R = 6371;
     const dLat = (lat2 - lat1) * (Math.PI / 180);
     const dLon = (lon2 - lon1) * (Math.PI / 180);
@@ -50,7 +50,7 @@ export default function MenuGrid({ categories, menuItems }) {
       window.location.href = "/location-required";
     }
   }, []);
-
+*/
   const [selectedItem, setSelectedItem] = useState(null);
   const closeModal = () => setSelectedItem(null);
   const [cart, setCart] = useState([]);
