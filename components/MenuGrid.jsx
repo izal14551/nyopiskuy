@@ -1,14 +1,19 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import BestSellerCard from "./BestSellerCard";
 import Image from "next/image";
+
 // const KEDAI_LAT = -7.400004872608103;
 // const KEDAI_LNG = 109.2442127023531;
 // const MAX_DISTANCE_KM = 0.2;
 
-export default function MenuGrid({ categories, menuItems }) {
+export default function MenuGrid({ categories = [], menuItems = [] }) {
+  const router = useRouter();
+
   const [activeCategory, setActiveCategory] = useState("");
+
   /* function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
     const R = 6371;
     const dLat = (lat2 - lat1) * (Math.PI / 180);
@@ -51,6 +56,19 @@ export default function MenuGrid({ categories, menuItems }) {
     }
   }, []);
 */
+  // 🔄 AUTO-REFRESH data dari server tanpa pakai API:
+  // - refresh ketika tab kembali fokus
+  // - polling ringan tiap 15 detik
+  useEffect(() => {
+    const onFocus = () => router.refresh();
+    window.addEventListener("focus", onFocus);
+    const t = setInterval(() => router.refresh(), 5000);
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      clearInterval(t);
+    };
+  }, [router]);
+
   const [selectedItem, setSelectedItem] = useState(null);
   const closeModal = () => setSelectedItem(null);
   const [cart, setCart] = useState([]);
@@ -80,7 +98,7 @@ export default function MenuGrid({ categories, menuItems }) {
 
   useEffect(() => {
     const fetchBestSellers = async () => {
-      const res = await fetch("/api/bestseller");
+      const res = await fetch("/api/bestseller", { cache: "no-store" });
       const data = await res.json();
       const list = Array.isArray(data) ? data : [];
       const ids = list.map((m) => m.id);
@@ -107,7 +125,6 @@ export default function MenuGrid({ categories, menuItems }) {
           {
             ...menuItem,
             qty: 1,
-
             estimated_time: menuItem.estimated_time || 5
           }
         ];
@@ -281,6 +298,7 @@ export default function MenuGrid({ categories, menuItems }) {
           </div>
         ))}
       </div>
+
       <button
         onClick={() => setShowCart(true)}
         className={`fixed z-50 bottom-5 right-5 bg-green-800 text-white p-4 rounded-full shadow-lg  transition-transform duration-300 ${
