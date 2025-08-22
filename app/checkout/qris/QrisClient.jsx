@@ -115,7 +115,6 @@ export default function QrisClient() {
           </div>
         </div>
 
-        {/* QR Placeholder */}
         <div className="rounded-xl border p-4 mb-3 flex items-center justify-center">
           <div className="text-center">
             <div className="text-sm font-medium mb-1">NYOPI SKUYY</div>
@@ -148,7 +147,6 @@ export default function QrisClient() {
           </a>
         </div>
 
-        {/* Tombol download QR */}
         <button
           onClick={handleDownloadQR}
           className="mt-3 w-full h-11 rounded-xl border border-green-600 hover:bg-green-50 text-green-600 font-medium"

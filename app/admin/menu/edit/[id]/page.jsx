@@ -204,7 +204,6 @@ export default function EditMenuPage() {
           />
         </div>
 
-        {/* Upload Gambar */}
         <div>
           <label className="font-semibold block mb-1">Foto Produk</label>
 

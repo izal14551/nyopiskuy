@@ -16,11 +16,10 @@ export default function ManageOrdersPage() {
     fetchOrders();
     const interval = setInterval(() => {
       fetchOrders();
-    }, 3000); // refresh tiap 3 detik
+    }, 3000);
     return () => clearInterval(interval);
   }, []);
 
-  // helper rupiah
   const rp = (n = 0) => {
     try {
       return new Intl.NumberFormat("id-ID", {
@@ -34,12 +33,9 @@ export default function ManageOrdersPage() {
     }
   };
 
-  // Bangun URL ke /checkout/receipt dari satu order
   const buildReceiptUrl = (order) => {
-    // Normalisasi items ke {name, qty, price}
     const itemsClean = (order?.items || []).map((it, idx) => {
       const qty = Number(it.qty ?? it.quantity ?? 1);
-      // harga per unit: coba ambil price/unit_price; jika hanya ada total & qty, turunkan
       const unitPrice =
         it.price ??
         it.unit_price ??
@@ -49,7 +45,6 @@ export default function ManageOrdersPage() {
       return { name, qty, price: Number(unitPrice || 0) };
     });
 
-    // Total fallback bila order.total tidak ada
     const fallbackTotal = itemsClean.reduce(
       (s, it) => s + it.qty * it.price,
       0
@@ -120,7 +115,6 @@ export default function ManageOrdersPage() {
               </div>
 
               <div className="mt-2 text-sm pb-1 flex flex-wrap items-start gap-x-3 gap-y-1">
-                {/* NOTE – bisa wrap & aman untuk teks panjang */}
                 <div className="min-w-0 flex-1">
                   <span className="font-medium">Note: </span>
                   <span className="whitespace-pre-wrap break-words">
@@ -128,7 +122,6 @@ export default function ManageOrdersPage() {
                   </span>
                 </div>
 
-                {/* PAYMENT */}
                 <div className="font-bold shrink-0">
                   Pembayaran Via: {order.payment_method}
                 </div>
@@ -139,7 +132,6 @@ export default function ManageOrdersPage() {
               </div>
 
               <div className="mt-3 flex flex-wrap gap-3 items-center justify-between">
-                {/* Badge status */}
                 <span
                   className={`text-xs font-semibold px-2 py-1 rounded-full ${
                     order.status === "Selesai"
@@ -155,7 +147,6 @@ export default function ManageOrdersPage() {
                 </span>
 
                 <div className="flex gap-2 justify-between items-center">
-                  {/* Tombol CETAK STRUK */}
                   <a
                     href={buildReceiptUrl(order)}
                     target="_blank"
@@ -166,7 +157,6 @@ export default function ManageOrdersPage() {
                     Cetak Struk
                   </a>
 
-                  {/* Dropdown ubah status */}
                   <select
                     value={order.status}
                     onChange={async (e) => {

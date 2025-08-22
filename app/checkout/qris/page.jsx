@@ -1,7 +1,6 @@
 import { Suspense } from "react";
 import QrisClient from "./QrisClient";
 
-// Hindari prerender statis untuk halaman berbasis query string
 export const dynamic = "force-dynamic";
 
 export default function Page() {

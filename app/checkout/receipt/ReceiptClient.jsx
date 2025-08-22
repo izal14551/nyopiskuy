@@ -38,9 +38,7 @@ export default function ReceiptClient() {
   const paidAt = sp.get("paidAt") ? new Date(sp.get("paidAt")) : new Date();
   const autoPrint = sp.get("print") === "1";
 
-  // contoh item; kalau kamu sudah punya detail item di URL atau state, isi di sini
   const items = useMemo(() => {
-    // kamu bisa mengirim items via query param JSON kalau mau, mis: ?items=[{name:'Latte',qty:1,price:20000}]
     const j = sp.get("items");
     if (j) {
       try {
@@ -49,15 +47,11 @@ export default function ReceiptClient() {
         /* ignore */
       }
     }
-    // fallback contoh (hapus kalau tidak mau)
-    return [
-      // { name: "Caffè Latte (Ice, Less Sugar)", qty: 1, price: amount }, // satu item total
-    ];
+    return [];
   }, [sp, amount]);
 
   useEffect(() => {
     if (autoPrint) {
-      // beri sedikit jeda agar DOM siap
       const t = setTimeout(() => window.print(), 300);
       return () => clearTimeout(t);
     }
@@ -67,8 +61,8 @@ export default function ReceiptClient() {
     ? items.reduce((s, it) => s + Number(it.price) * Number(it.qty || 1), 0)
     : amount;
 
-  const service = 0; // atur jika ada biaya layanan
-  const discount = 0; // atur jika ada diskon
+  const service = 0;
+  const discount = 0;
   const grandTotal = Math.max(0, subtotal + service - discount);
 
   return (
@@ -98,7 +92,6 @@ export default function ReceiptClient() {
 
         <div className="sep dotted" />
 
-        {/* Detail item */}
         {items.length > 0 ? (
           <div className="items">
             {items.map((it, idx) => (
@@ -122,7 +115,6 @@ export default function ReceiptClient() {
 
         <div className="sep dotted" />
 
-        {/* Ringkasan */}
         <div className="row">
           <div className="label">Subtotal</div>
           <div className="value">{formatRupiah(subtotal)}</div>
@@ -150,7 +142,6 @@ export default function ReceiptClient() {
           Terima kasih! <br /> Simpan struk ini sebagai bukti pembayaran.
         </div>
       </div>
-      {/* Tombol aksi non-print */}
       <div className="actions no-print">
         <button onClick={() => window.print()} className="btn">
           Cetak Struk

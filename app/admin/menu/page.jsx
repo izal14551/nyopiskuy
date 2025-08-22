@@ -8,7 +8,6 @@ export default function ManageMenuPage() {
   const [categories, setCategories] = useState([]);
   const [activeCategory, setActiveCategory] = useState(null);
 
-  // Ambil semua menu
   const fetchMenus = async () => {
     const res = await fetch("/api/menu");
     if (!res.ok) {
@@ -19,7 +18,6 @@ export default function ManageMenuPage() {
     setMenus(data);
   };
 
-  // Ambil semua kategori unik dari API
   const fetchCategories = async () => {
     const res = await fetch("/api/menu/categories");
     const data = await res.json();
@@ -113,7 +111,6 @@ export default function ManageMenuPage() {
           </div>
         </div>
 
-        {/* Daftar menu */}
         <div className="grid grid-cols-2 gap-4 mt-4">
           {filteredMenus.map((menu) => (
             <div
@@ -147,7 +144,6 @@ export default function ManageMenuPage() {
                 </p>
               </div>
 
-              {/* Tombol aksi */}
               <div className="grid grid-cols-3 gap-1 text-xs mt-auto">
                 <Link href={`/admin/menu/edit/${menu.id}`}>
                   <button className="w-full h-10 bg-green-600 text-white py-1 rounded">

@@ -2,13 +2,12 @@
 
 import { useEffect, useState } from "react";
 
-// Ganti koordinat & radius sesuai kedai kamu
-const KEDAI_LAT = -7.399800542492628; // koordinat kedai
+const KEDAI_LAT = -7.399800542492628;
 const KEDAI_LNG = 109.24421409671129;
-const MAX_DISTANCE_KM = 0.2; // 200 meter
+const MAX_DISTANCE_KM = 0.2;
 
 function haversineKm(lat1, lon1, lat2, lon2) {
-  const R = 6371; // km
+  const R = 6371;
   const dLat = (lat2 - lat1) * (Math.PI / 180);
   const dLon = (lon2 - lon1) * (Math.PI / 180);
   const a =

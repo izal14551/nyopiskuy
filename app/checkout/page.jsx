@@ -134,7 +134,6 @@ export default function CheckoutPage() {
             {orderNote?.trim() ? orderNote : "—"}
           </p>
 
-          {/* Metode Pembayaran */}
           <div className="mt-2">
             <label className="text-sm font-medium block mb-1">
               Metode Pembayaran
@@ -152,7 +151,6 @@ export default function CheckoutPage() {
             </button>
           </div>
 
-          {/* Tombol Pesan */}
           <button
             onClick={() => handleCheckout()}
             disabled={isPaying}
@@ -169,23 +167,19 @@ export default function CheckoutPage() {
               : "Pesan Sekarang"}
           </button>
 
-          {/* Info status (opsional) */}
           {statusMessage && (
             <p className="text-red-600 text-sm mt-2">{statusMessage}</p>
           )}
         </div>
       )}
 
-      {/* ====== MODAL METODE PEMBAYARAN (bottom sheet) ====== */}
       {showPaymentModal && (
         <div className="fixed inset-0 z-50">
-          {/* Backdrop gelap & blur */}
           <div
             className="absolute inset-0 bg-black/40 backdrop-blur-[2px]"
             onClick={closeModal}
             aria-hidden="true"
           />
-          {/* Sheet */}
           <div
             className={`absolute left-1/2 -translate-x-1/2 bottom-0 w-full max-w-md
               bg-white rounded-t-2xl shadow-xl p-5
@@ -208,7 +202,6 @@ export default function CheckoutPage() {
             </div>
 
             <div className="space-y-3">
-              {/* QRIS */}
               <button
                 type="button"
                 onClick={() => setPaymentMethod("QRIS")}
@@ -239,7 +232,6 @@ export default function CheckoutPage() {
                 </div>
               </button>
 
-              {/* COD */}
               <button
                 type="button"
                 onClick={() => setPaymentMethod("Bayar di Tempat")}
@@ -271,7 +263,6 @@ export default function CheckoutPage() {
               <button
                 onClick={() => {
                   if (!paymentMethod) return;
-                  // Tutup modal (animasi 300ms), lalu langsung proses
                   closeModal();
                   setTimeout(() => handleCheckout(paymentMethod), 320);
                 }}

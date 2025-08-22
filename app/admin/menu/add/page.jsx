@@ -22,12 +22,10 @@ export default function AddMenuPage() {
   const [useNewCategory, setUseNewCategory] = useState(false);
   const [newCategory, setNewCategory] = useState("");
 
-  // ✅ Fetch kategori unik dari menu
   useEffect(() => {
     fetch("/api/menu/categories")
       .then((res) => res.json())
       .then((data) => {
-        // Sesuaikan dengan struktur response dari API
         const array = Array.isArray(data) ? data : data.categories;
         setCategories(array || []);
       })
@@ -86,12 +84,10 @@ export default function AddMenuPage() {
     if (res.ok) {
       setMessage("Menu berhasil ditambahkan!");
 
-      // ✅ Tambahkan kategori baru ke daftar kategori
       if (useNewCategory && !categories.includes(newCategory.trim())) {
         setCategories((prev) => [...prev, newCategory.trim()]);
       }
 
-      // ✅ Reset form
       setForm({
         name: "",
         description: "",
@@ -117,7 +113,6 @@ export default function AddMenuPage() {
         className="space-y-4"
         encType="multipart/form-data"
       >
-        {/* Nama Produk */}
         <div>
           <label className="font-semibold block mb-1">Nama Produk</label>
           <input
@@ -130,7 +125,6 @@ export default function AddMenuPage() {
           />
         </div>
 
-        {/* Deskripsi */}
         <div>
           <label className="font-semibold block mb-1">Deskripsi</label>
           <input
@@ -143,7 +137,6 @@ export default function AddMenuPage() {
           />
         </div>
 
-        {/* Harga */}
         <div>
           <label className="font-semibold block mb-1">Harga</label>
           <input
@@ -156,7 +149,6 @@ export default function AddMenuPage() {
           />
         </div>
 
-        {/* Kategori Dropdown */}
         <div>
           <label className="font-semibold block mb-1">Kategori</label>
           <select
@@ -183,7 +175,6 @@ export default function AddMenuPage() {
           </select>
         </div>
 
-        {/* Input kategori baru */}
         {useNewCategory && (
           <div className="mt-2">
             <label className="font-semibold block mb-1">Kategori Baru</label>
@@ -197,7 +188,6 @@ export default function AddMenuPage() {
           </div>
         )}
 
-        {/* Estimasi Waktu */}
         <div>
           <label className="font-semibold block mb-1">
             Estimasi Waktu (menit)
@@ -212,7 +202,6 @@ export default function AddMenuPage() {
           />
         </div>
 
-        {/* Upload Foto */}
         <div>
           <label className="font-semibold block mb-1">Foto Produk</label>
           {!croppedImage ? (
@@ -237,7 +226,6 @@ export default function AddMenuPage() {
           )}
         </div>
 
-        {/* Tombol Submit & Cancel */}
         <button
           type="submit"
           className="w-full bg-green-800 text-white py-2 rounded hover:bg-green-700"

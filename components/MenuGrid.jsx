@@ -3,9 +3,9 @@
 import { useState, useEffect } from "react";
 import BestSellerCard from "./BestSellerCard";
 import Image from "next/image";
-const KEDAI_LAT = -7.400004872608103; // ganti ke koordinat kedai kamu
+const KEDAI_LAT = -7.400004872608103;
 const KEDAI_LNG = 109.2442127023531;
-const MAX_DISTANCE_KM = 0.2; // 200 meter
+const MAX_DISTANCE_KM = 0.2;
 
 export default function MenuGrid({ categories, menuItems }) {
   const [activeCategory, setActiveCategory] = useState("");
@@ -152,15 +152,12 @@ export default function MenuGrid({ categories, menuItems }) {
     <div className="min-h-screen bg-white pb-20">
       {/* Navbar */}
       <div className="w-full grid grid-cols-3 items-center px-4 py-3 shadow-md sticky top-0 bg-green-800 z-50">
-        {/* spacer kiri (biar judul tetap center) */}
         <div />
 
-        {/* judul benar-benar di tengah */}
         <h1 className="text-xl font-bold tracking-wide text-center text-white">
           NYOPISKUY
         </h1>
 
-        {/* logo kanan */}
         <div className="justify-self-end">
           <Image src="/logo-putih.png" alt="Logo" width={32} height={32} />
         </div>
@@ -169,7 +166,6 @@ export default function MenuGrid({ categories, menuItems }) {
       {/* Kategori */}
       <div className="bg-white sticky top-0 z-10 px-4 py-3">
         <div className="flex gap-2 overflow-x-auto scrollbar-hide whitespace-nowrap">
-          {/* Tombol "Semua" */}
           <button
             onClick={() => setActiveCategory("")}
             className={`px-4 py-2 rounded-full text-sm ${
@@ -181,7 +177,6 @@ export default function MenuGrid({ categories, menuItems }) {
             Semua
           </button>
 
-          {/* Kategori lain */}
           {categories.map((cat) => (
             <button
               key={cat}
@@ -206,7 +201,6 @@ export default function MenuGrid({ categories, menuItems }) {
             className="bg-white rounded-xl shadow p-2 flex flex-col justify-between h-full"
           >
             <div>
-              {/* Gambar + Badge */}
               <div className="relative">
                 <img
                   src={item.image_url ?? `/api/menu/image/${item.id}`}
@@ -231,7 +225,6 @@ export default function MenuGrid({ categories, menuItems }) {
                 )}
               </div>
 
-              {/* Info */}
               <div className="mt-2 px-1">
                 <h3 className="font-semibold text-black text-sm">
                   {item.name}
