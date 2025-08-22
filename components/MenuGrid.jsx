@@ -1,17 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import BestSellerCard from "./BestSellerCard";
+import { useState, useEffect, useMemo } from "react";
 import Image from "next/image";
 
 // const KEDAI_LAT = -7.400004872608103;
 // const KEDAI_LNG = 109.2442127023531;
 // const MAX_DISTANCE_KM = 0.2;
 
-export default function MenuGrid({ categories = [], menuItems = [] }) {
-  const router = useRouter();
-
+export default function MenuGrid() {
   const [activeCategory, setActiveCategory] = useState("");
 
   /* function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
@@ -40,7 +36,6 @@ export default function MenuGrid({ categories = [], menuItems = [] }) {
             KEDAI_LAT,
             KEDAI_LNG
           );
-
           if (distance > MAX_DISTANCE_KM) {
             window.location.href = "/location-required";
           }
@@ -56,19 +51,55 @@ export default function MenuGrid({ categories = [], menuItems = [] }) {
     }
   }, []);
 */
-  // 🔄 AUTO-REFRESH data dari server tanpa pakai API:
-  // - refresh ketika tab kembali fokus
-  // - polling ringan tiap 15 detik
+  // ================= FULL DINAMIS: ambil menu via API =================
+  const [menuItems, setMenuItems] = useState([]);
+  const [loadingMenu, setLoadingMenu] = useState(true);
+  const [bestSellerIds, setBestSellerIds] = useState([]);
+
+  async function fetchMenu(signal) {
+    try {
+      const res = await fetch("/api/menu", {
+        cache: "no-store",
+        headers: { "x-no-static": "1" },
+        signal
+      });
+      const data = await res.json();
+      if (Array.isArray(data)) setMenuItems(data);
+    } catch (e) {
+      // silent
+    } finally {
+      setLoadingMenu(false);
+    }
+  }
+
   useEffect(() => {
-    const onFocus = () => router.refresh();
+    const ac = new AbortController();
+    fetchMenu(ac.signal);
+
+    // Re-fetch saat tab fokus + polling ringan 15 detik
+    const onFocus = () => fetchMenu();
     window.addEventListener("focus", onFocus);
-    const t = setInterval(() => router.refresh(), 5000);
+    const t = setInterval(() => fetchMenu(), 15000);
+
     return () => {
+      ac.abort();
       window.removeEventListener("focus", onFocus);
       clearInterval(t);
     };
-  }, [router]);
+  }, []);
 
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch("/api/bestseller", { cache: "no-store" });
+        const data = await res.json();
+        const list = Array.isArray(data) ? data : [];
+        setBestSellerIds(list.map((m) => m.id));
+      } catch {}
+    })();
+  }, []);
+
+  // ================ STATE KERANJANG & LAINNYA (tetap) ================
   const [selectedItem, setSelectedItem] = useState(null);
   const closeModal = () => setSelectedItem(null);
   const [cart, setCart] = useState([]);
@@ -89,30 +120,23 @@ export default function MenuGrid({ categories = [], menuItems = [] }) {
     const storedNote = localStorage.getItem("orderNote");
     if (storedNote) setOrderNote(storedNote);
   }, []);
-
   useEffect(() => {
     localStorage.setItem("orderNote", orderNote);
   }, [orderNote]);
 
-  const [bestSellerIds, setBestSellerIds] = useState([]);
-
-  useEffect(() => {
-    const fetchBestSellers = async () => {
-      const res = await fetch("/api/bestseller", { cache: "no-store" });
-      const data = await res.json();
-      const list = Array.isArray(data) ? data : [];
-      const ids = list.map((m) => m.id);
-      setBestSellerIds(ids);
-    };
-    fetchBestSellers();
-  }, []);
+  // ================== KATEGORI dari data live ==================
+  const categories = useMemo(() => {
+    const set = new Set();
+    menuItems.forEach((i) => i?.category && set.add(i.category));
+    return Array.from(set);
+  }, [menuItems]);
 
   const filteredItems =
     activeCategory === ""
       ? menuItems
       : menuItems.filter((item) => item.category === activeCategory);
 
-  const addToCart = (menuItem, temperature, sweetness) => {
+  const addToCart = (menuItem) => {
     setCart((prev) => {
       const existing = prev.find((item) => item.id === menuItem.id);
       if (existing) {
@@ -145,6 +169,7 @@ export default function MenuGrid({ categories = [], menuItems = [] }) {
 
   const decreaseQty = (id) => {
     const item = cart.find((item) => item.id === id);
+    if (!item) return;
 
     if (item.qty === 1) {
       setRemovingItemId(id);
@@ -154,27 +179,29 @@ export default function MenuGrid({ categories = [], menuItems = [] }) {
       }, 300);
     } else {
       setCart((prev) =>
-        prev.map((item) =>
-          item.id === id ? { ...item, qty: item.qty - 1 } : item
-        )
+        prev.map((i) => (i.id === id ? { ...i, qty: i.qty - 1 } : i))
       );
     }
   };
 
-  const handleAddClick = (item) => {
-    setSelectedItem(item);
-  };
+  const handleAddClick = (item) => setSelectedItem(item);
+
+  if (loadingMenu) {
+    return (
+      <div className="min-h-screen grid place-items-center text-gray-500">
+        Memuat menu…
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white pb-20">
       {/* Navbar */}
       <div className="w-full grid grid-cols-3 items-center px-4 py-3 shadow-md sticky top-0 bg-green-800 z-50">
         <div />
-
         <h1 className="text-xl font-bold tracking-wide text-center text-white">
           NYOPISKUY
         </h1>
-
         <div className="justify-self-end">
           <Image src="/logo-putih.png" alt="Logo" width={32} height={32} />
         </div>
@@ -220,7 +247,11 @@ export default function MenuGrid({ categories = [], menuItems = [] }) {
             <div>
               <div className="relative">
                 <img
-                  src={item.image_url ?? `/api/menu/image/${item.id}`}
+                  src={
+                    item.image_url
+                      ? item.image_url
+                      : `/api/menu/image/${item.id}`
+                  }
                   alt={item.name}
                   className={`rounded-md w-full h-28 object-cover ${
                     item.sold_out ? "grayscale opacity-70" : ""
@@ -299,12 +330,14 @@ export default function MenuGrid({ categories = [], menuItems = [] }) {
         ))}
       </div>
 
+      {/* Tombol Keranjang */}
       <button
         onClick={() => setShowCart(true)}
         className={`fixed z-50 bottom-5 right-5 bg-green-800 text-white p-4 rounded-full shadow-lg  transition-transform duration-300 ${
           animateCart ? "scale-110" : "scale-100"
         }`}
       >
+        {/* ikon keranjang */}
         <svg
           xmlns="http://www.w3.org/2000/svg"
           fill="none"
@@ -327,6 +360,7 @@ export default function MenuGrid({ categories = [], menuItems = [] }) {
         )}
       </button>
 
+      {/* Modal Detail */}
       {selectedItem && (
         <div className="fixed inset-0 bg-[rgba(0,0,0,0.2)] backdrop-blur-sm flex items-center justify-center z-50 transition-opacity duration-300">
           <div className="bg-white rounded-lg p-4 w-[90%] max-w-sm relative transition-all duration-300 transform scale-95 opacity-0 animate-[fadeIn_0.3s_ease-out_forwards]">
@@ -374,10 +408,11 @@ export default function MenuGrid({ categories = [], menuItems = [] }) {
           </div>
         </div>
       )}
+
+      {/* Drawer Keranjang */}
       {showCart && (
         <div className="fixed inset-0 bg-[rgba(0,0,0,0.2)] backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-white w-[90%] max-w-sm rounded-lg p-4 relative transition-all duration-300 transform scale-95 opacity-0 animate-[fadeIn_0.3s_ease-out_forwards]">
-            {/* Close button */}
             <button
               onClick={() => setShowCart(false)}
               className="absolute top-2 right-2 text-gray-500 hover:text-red-600 text-lg"

@@ -34,7 +34,7 @@ export async function POST(req) {
 export async function GET() {
   try {
     const result = await db.query(
-      "SELECT id, name, description, price, category, estimated_time FROM menu ORDER BY id DESC"
+      "SELECT id, name, description, price, category, sold_out, estimated_time FROM menu ORDER BY id DESC"
     );
     return NextResponse.json(result.rows);
   } catch (error) {
