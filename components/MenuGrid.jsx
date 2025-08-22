@@ -3,17 +3,13 @@
 import { useState, useEffect } from "react";
 import BestSellerCard from "./BestSellerCard";
 import Image from "next/image";
-/*
 const KEDAI_LAT = -7.400004872608103;
 const KEDAI_LNG = 109.2442127023531;
 const MAX_DISTANCE_KM = 0.2;
-*/
+
 export default function MenuGrid({ categories, menuItems }) {
   const [activeCategory, setActiveCategory] = useState("");
-  const [liveItems, setLiveItems] = useState(null);
-  const [loadingLive, setLoadingLive] = useState(true);
-
-  /* function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
+  function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
     const R = 6371;
     const dLat = (lat2 - lat1) * (Math.PI / 180);
     const dLon = (lon2 - lon1) * (Math.PI / 180);
@@ -54,7 +50,7 @@ export default function MenuGrid({ categories, menuItems }) {
       window.location.href = "/location-required";
     }
   }, []);
-*/
+
   const [selectedItem, setSelectedItem] = useState(null);
   const closeModal = () => setSelectedItem(null);
   const [cart, setCart] = useState([]);
@@ -83,35 +79,8 @@ export default function MenuGrid({ categories, menuItems }) {
   const [bestSellerIds, setBestSellerIds] = useState([]);
 
   useEffect(() => {
-    let stop = false;
-    const fetchNow = async () => {
-      try {
-        const res = await fetch("/api/menu", {
-          cache: "no-store",
-          headers: { "x-no-static": "1" }
-        });
-        const data = await res.json();
-        if (!stop && Array.isArray(data)) setLiveItems(data);
-      } catch {
-      } finally {
-        if (!stop) setLoadingLive(false);
-      }
-    };
-    fetchNow();
-    // Re-fetch saat tab fokus + polling ringan 15 detik
-    const onFocus = () => fetchNow();
-    window.addEventListener("focus", onFocus);
-    const t = setInterval(fetchNow, 15000);
-    return () => {
-      stop = true;
-      window.removeEventListener("focus", onFocus);
-      clearInterval(t);
-    };
-  }, []);
-
-  useEffect(() => {
     const fetchBestSellers = async () => {
-      const res = await fetch("/api/bestseller", { cache: "no-store" });
+      const res = await fetch("/api/bestseller");
       const data = await res.json();
       const list = Array.isArray(data) ? data : [];
       const ids = list.map((m) => m.id);

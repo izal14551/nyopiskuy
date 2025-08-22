@@ -36,9 +36,7 @@ export async function GET() {
     const result = await db.query(
       "SELECT id, name, description, price, category, estimated_time FROM menu ORDER BY id DESC"
     );
-    return NextResponse.json(rows, {
-      headers: { "Cache-Control": "no-store" }
-    });
+    return NextResponse.json(result.rows);
   } catch (error) {
     console.error("DB Error:", error);
     return NextResponse.json(
