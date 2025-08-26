@@ -98,14 +98,16 @@ export default function LocationRequiredPage() {
           >
             Coba lagi
           </button>
-          <a
-            href={`https://www.google.com/maps/dir/?api=1&destination=${KEDAI_LAT},${KEDAI_LNG}`}
-            target="_blank"
-            rel="noreferrer"
-            className="px-4 py-2 rounded-xl bg-gray-200 text-gray-800 shadow hover:bg-gray-300"
-          >
-            Buka Maps Kedai
-          </a>
+          {kedaiLat != null && kedaiLng != null && (
+            <a
+              href={`https://www.google.com/maps?q=${kedaiLat},${kedaiLng}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 underline"
+            >
+              Buka di Google Maps
+            </a>
+          )}
         </div>
 
         <div className="mt-4 text-xs text-gray-400">

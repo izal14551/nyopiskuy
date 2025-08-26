@@ -3,11 +3,11 @@
 import { useState, useEffect, useMemo } from "react";
 import Image from "next/image";
 
-const KEDAI_LAT = -7.441978459503339;
-const KEDAI_LNG = 109.27104532419972;
 const MAX_DISTANCE_KM = 0.2;
 
 export default function MenuGrid() {
+  const [kedaiLat, setKedaiLat] = useState(null);
+  const [kedaiLng, setKedaiLng] = useState(null);
   const [activeCategory, setActiveCategory] = useState("");
 
   function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
@@ -25,6 +25,27 @@ export default function MenuGrid() {
   }
 
   useEffect(() => {
+    let ignore = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/config", { cache: "no-store" });
+        const { lat, lng } = await res.json();
+        if (!ignore) {
+          setKedaiLat(lat);
+          setKedaiLng(lng);
+        }
+      } catch (e) {
+        console.error("Gagal fetch config lokasi", e);
+      }
+    })();
+    return () => {
+      ignore = true;
+    };
+  }, []);
+
+  // Minta geolokasi setelah koordinat kedai didapat
+  useEffect(() => {
+    if (kedaiLat == null || kedaiLng == null) return;
     if (typeof window !== "undefined" && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
@@ -33,8 +54,8 @@ export default function MenuGrid() {
           const distance = getDistanceFromLatLonInKm(
             userLat,
             userLng,
-            KEDAI_LAT,
-            KEDAI_LNG
+            kedaiLat,
+            kedaiLng
           );
           if (distance > MAX_DISTANCE_KM) {
             window.location.href = "/location-required";
@@ -49,7 +70,7 @@ export default function MenuGrid() {
       alert("Peramban tidak mendukung Geolocation.");
       window.location.href = "/location-required";
     }
-  }, []);
+  }, [kedaiLat, kedaiLng]);
 
   const [menuItems, setMenuItems] = useState([]);
   const [loadingMenu, setLoadingMenu] = useState(true);
