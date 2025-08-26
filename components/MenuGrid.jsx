@@ -3,14 +3,14 @@
 import { useState, useEffect, useMemo } from "react";
 import Image from "next/image";
 
-// const KEDAI_LAT = -7.400004872608103;
-// const KEDAI_LNG = 109.2442127023531;
-// const MAX_DISTANCE_KM = 0.2;
+const KEDAI_LAT = -7.400004872608103;
+const KEDAI_LNG = 109.2442127023531;
+const MAX_DISTANCE_KM = 0.2;
 
 export default function MenuGrid() {
   const [activeCategory, setActiveCategory] = useState("");
 
-  /* function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
+  function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
     const R = 6371;
     const dLat = (lat2 - lat1) * (Math.PI / 180);
     const dLon = (lon2 - lon1) * (Math.PI / 180);
@@ -50,8 +50,7 @@ export default function MenuGrid() {
       window.location.href = "/location-required";
     }
   }, []);
-*/
-  // ================= FULL DINAMIS: ambil menu via API =================
+
   const [menuItems, setMenuItems] = useState([]);
   const [loadingMenu, setLoadingMenu] = useState(true);
   const [bestSellerIds, setBestSellerIds] = useState([]);
@@ -76,7 +75,6 @@ export default function MenuGrid() {
     const ac = new AbortController();
     fetchMenu(ac.signal);
 
-    // Re-fetch saat tab fokus + polling ringan 15 detik
     const onFocus = () => fetchMenu();
     window.addEventListener("focus", onFocus);
     const t = setInterval(() => fetchMenu(), 15000);
@@ -99,7 +97,6 @@ export default function MenuGrid() {
     })();
   }, []);
 
-  // ================ STATE KERANJANG & LAINNYA (tetap) ================
   const [selectedItem, setSelectedItem] = useState(null);
   const closeModal = () => setSelectedItem(null);
   const [cart, setCart] = useState([]);
@@ -124,7 +121,6 @@ export default function MenuGrid() {
     localStorage.setItem("orderNote", orderNote);
   }, [orderNote]);
 
-  // ================== KATEGORI dari data live ==================
   const categories = useMemo(() => {
     const set = new Set();
     menuItems.forEach((i) => i?.category && set.add(i.category));
