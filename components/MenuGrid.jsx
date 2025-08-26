@@ -98,7 +98,7 @@ export default function MenuGrid() {
 
     const onFocus = () => fetchMenu();
     window.addEventListener("focus", onFocus);
-    const t = setInterval(() => fetchMenu(), 15000);
+    const t = setInterval(() => fetchMenu(), 3000);
 
     return () => {
       ac.abort();
