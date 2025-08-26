@@ -60,16 +60,13 @@ export default function LocationRequiredPage() {
         throw new Error("Koordinat kedai belum siap. Coba lagi sebentar.");
       }
 
-      const pos =
-        (await new Promise()) <
-        GeolocationPosition >
-        ((resolve, reject) => {
-          navigator.geolocation.getCurrentPosition(resolve, reject, {
-            enableHighAccuracy: true,
-            timeout: 15000,
-            maximumAge: 0
-          });
+      const pos = await new Promise((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 15000,
+          maximumAge: 0
         });
+      });
 
       const { latitude, longitude, accuracy: acc } = pos.coords || {};
       const d = haversineKm(latitude, longitude, kedaiLat, kedaiLng);
