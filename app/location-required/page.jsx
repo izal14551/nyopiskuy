@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 
-// Haversine untuk jarak (km)
-function getDistanceKm(lat1, lon1, lat2, lon2) {
-  const R = 6371; // km
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+const MAX_DISTANCE_KM = 0.2;
+
+// Haversine (km)
+function haversineKm(lat1, lon1, lat2, lon2) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * (Math.PI / 180);
+  const dLon = (lon2 - lon1) * (Math.PI / 180);
   const a =
     Math.sin(dLat / 2) ** 2 +
     Math.cos((lat1 * Math.PI) / 180) *
@@ -16,15 +18,17 @@ function getDistanceKm(lat1, lon1, lat2, lon2) {
   return R * c;
 }
 
-export default function LocationRequired() {
+export default function LocationRequiredPage() {
+  const [loading, setLoading] = useState(true);
+  const [distanceKm, setDistanceKm] = useState(null);
+  const [accuracy, setAccuracy] = useState(null);
+  const [error, setError] = useState("");
+
+  // koordinat kedai (runtime)
   const [kedaiLat, setKedaiLat] = useState(null);
   const [kedaiLng, setKedaiLng] = useState(null);
-  const [userLat, setUserLat] = useState(null);
-  const [userLng, setUserLng] = useState(null);
-  const [locErr, setLocErr] = useState("");
-  const [loading, setLoading] = useState(true);
 
-  // 1) Ambil koordinat kedai secara runtime (no-cache)
+  // ambil koordinat kedai dari API (selalu terbaru)
   useEffect(() => {
     let ignore = false;
     (async () => {
@@ -36,7 +40,7 @@ export default function LocationRequired() {
           setKedaiLng(Number(lng));
         }
       } catch (e) {
-        setLocErr("Gagal memuat lokasi kedai.");
+        setError("Gagal memuat lokasi kedai.");
       }
     })();
     return () => {
@@ -44,124 +48,119 @@ export default function LocationRequired() {
     };
   }, []);
 
-  // 2) Minta lokasi pengguna
-  const requestLocation = () => {
+  async function checkDistance() {
     setLoading(true);
-    setLocErr("");
-    if (!("geolocation" in navigator)) {
-      setLocErr("Peramban tidak mendukung geolokasi.");
+    setError("");
+
+    try {
+      if (!navigator.geolocation) {
+        throw new Error("Peramban tidak mendukung Geolocation.");
+      }
+      if (kedaiLat == null || kedaiLng == null) {
+        throw new Error("Koordinat kedai belum siap. Coba lagi sebentar.");
+      }
+
+      const pos =
+        (await new Promise()) <
+        GeolocationPosition >
+        ((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: true,
+            timeout: 15000,
+            maximumAge: 0
+          });
+        });
+
+      const { latitude, longitude, accuracy: acc } = pos.coords || {};
+      const d = haversineKm(latitude, longitude, kedaiLat, kedaiLng);
+      setDistanceKm(d);
+      if (typeof acc === "number") setAccuracy(acc);
+
+      // Jika sudah dalam radius, arahkan kembali ke beranda
+      if (d <= MAX_DISTANCE_KM) {
+        window.location.href = "/";
+      }
+    } catch (e) {
+      const msg =
+        e?.message || (typeof e === "string" ? e : "Gagal mengambil lokasi");
+      setError(msg);
+    } finally {
       setLoading(false);
-      return;
     }
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setUserLat(pos.coords.latitude);
-        setUserLng(pos.coords.longitude);
-        setLoading(false);
-      },
-      (err) => {
-        setLocErr(
-          err.code === err.PERMISSION_DENIED
-            ? "Akses lokasi ditolak. Aktifkan izin lokasi lalu coba lagi."
-            : "Gagal mengambil lokasi. Pastikan GPS aktif dan koneksi stabil."
-        );
-        setLoading(false);
-      },
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
-    );
-  };
+  }
 
+  // cek pertama kali otomatis (setelah koordinat kedai tersedia)
   useEffect(() => {
-    requestLocation();
-  }, []);
-
-  // 3) Hitung jarak jika data lengkap
-  const distanceKm = useMemo(() => {
-    if (
-      kedaiLat == null ||
-      kedaiLng == null ||
-      userLat == null ||
-      userLng == null
-    )
-      return null;
-    return getDistanceKm(userLat, userLng, kedaiLat, kedaiLng);
-  }, [kedaiLat, kedaiLng, userLat, userLng]);
-
-  const distanceLabel = useMemo(() => {
-    if (distanceKm == null) return "-";
-    // tampilkan meter jika < 1 km, selain itu km dengan 2 desimal
-    if (distanceKm < 1) {
-      const meters = Math.round(distanceKm * 1000);
-      return `${meters} m`;
+    if (kedaiLat != null && kedaiLng != null) {
+      checkDistance();
     }
-    return `${distanceKm.toFixed(2)} km`;
-  }, [distanceKm]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [kedaiLat, kedaiLng]);
+
+  const distanceText =
+    typeof distanceKm === "number" ? distanceKm.toFixed(2) : "-";
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-white p-6 text-center">
-      <h1 className="text-2xl font-bold text-red-600 mb-2">
-        Lokasi Tidak Sesuai
-      </h1>
-      <p className="text-gray-700 mb-4 max-w-md">
-        Anda berada di luar radius kedai untuk menggunakan aplikasi ini.
-      </p>
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
+      <div className="w-full max-w-md bg-white rounded-2xl shadow p-6 text-center">
+        <h1 className="text-2xl font-bold mb-2">Akses Dibatasi Lokasi</h1>
+        <p className="text-gray-600 mb-4">
+          Anda terlalu jauh dari kedai untuk mengakses menu.
+        </p>
 
-      {/* Kartu ringkasan jarak */}
-      <div className="w-full max-w-md border rounded-xl p-4 shadow-sm mb-4">
-        <div className="flex items-center justify-between">
-          <div className="text-left">
-            <p className="text-sm text-gray-500">Jarak ke kedai</p>
-            <p className="text-2xl font-bold">
-              {loading ? "Mengukur…" : distanceLabel}
+        {loading && <p className="text-gray-700">Mendeteksi lokasi…</p>}
+
+        {!loading && error && (
+          <div className="text-red-600">Gagal mendeteksi lokasi. {error}</div>
+        )}
+
+        {!loading && !error && (
+          <div className="space-y-2">
+            <p>
+              Jarak Anda saat ini:{" "}
+              <span className="font-semibold">{distanceText} km</span>
             </p>
+            <p className="text-sm text-gray-500">
+              Batas akses: {MAX_DISTANCE_KM} km dari kedai.
+            </p>
+            {typeof accuracy === "number" && (
+              <p className="text-xs text-gray-400">
+                Perkiraan akurasi: ±{Math.round(accuracy)} m
+              </p>
+            )}
           </div>
-          {kedaiLat != null && kedaiLng != null && (
-            <a
-              href={`https://www.google.com/maps?q=${kedaiLat},${kedaiLng}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="bg-green-700 hover:bg-green-800 text-white px-3 py-2 rounded-lg text-sm"
-            >
-              Buka Maps
-            </a>
-          )}
+        )}
+
+        <div className="mt-6 flex gap-2 justify-center">
+          <button
+            onClick={checkDistance}
+            className="px-4 py-2 rounded-xl bg-green-800 text-white shadow hover:opacity-90"
+          >
+            Coba lagi
+          </button>
+
+          <a
+            href={
+              kedaiLat != null && kedaiLng != null
+                ? `https://www.google.com/maps/dir/?api=1&destination=${kedaiLat},${kedaiLng}`
+                : "#"
+            }
+            target="_blank"
+            rel="noreferrer"
+            className={`px-4 py-2 rounded-xl bg-gray-200 text-gray-800 shadow hover:bg-gray-300 ${
+              kedaiLat == null || kedaiLng == null
+                ? "pointer-events-none opacity-60"
+                : ""
+            }`}
+          >
+            Buka Maps Kedai
+          </a>
         </div>
 
-        {/* Detail koordinat (opsional untuk debugging) */}
-        <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-gray-600">
-          <div className="p-2 bg-gray-50 rounded">
-            <div className="font-semibold">Lokasi Anda</div>
-            <div>Lat: {userLat ?? "-"}</div>
-            <div>Lng: {userLng ?? "-"}</div>
-          </div>
-          <div className="p-2 bg-gray-50 rounded">
-            <div className="font-semibold">Lokasi Kedai</div>
-            <div>Lat: {kedaiLat ?? "-"}</div>
-            <div>Lng: {kedaiLng ?? "-"}</div>
-          </div>
+        <div className="mt-4 text-xs text-gray-400">
+          Pastikan situs diizinkan akses lokasi di browser.
         </div>
       </div>
-
-      {locErr && <p className="text-sm text-red-600 mb-3 max-w-md">{locErr}</p>}
-
-      <div className="flex gap-2">
-        <button
-          onClick={requestLocation}
-          className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg"
-        >
-          Coba Mengukur Ulang
-        </button>
-        <button
-          onClick={() => (window.location.href = "/")}
-          className="bg-green-700 hover:bg-green-800 text-white px-4 py-2 rounded-lg"
-        >
-          Kembali ke Beranda
-        </button>
-      </div>
-
-      <p className="text-xs text-gray-400 mt-4">
-        Tips: aktifkan GPS & izinkan akses lokasi pada browser Anda.
-      </p>
     </div>
   );
 }
