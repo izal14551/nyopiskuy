@@ -2,8 +2,6 @@
 
 import { useEffect, useState } from "react";
 
-const KEDAI_LAT = -7.399800542492628;
-const KEDAI_LNG = 109.24421409671129;
 const MAX_DISTANCE_KM = 0.2;
 
 function haversineKm(lat1, lon1, lat2, lon2) {
@@ -21,7 +19,10 @@ function haversineKm(lat1, lon1, lat2, lon2) {
 }
 
 export default function LocationRequiredPage() {
+  const [kedaiLat, setKedaiLat] = useState(null);
+  const [kedaiLng, setKedaiLng] = useState(null);
   const [loading, setLoading] = useState(true);
+
   const [distanceKm, setDistanceKm] = useState(null);
   const [accuracy, setAccuracy] = useState(null);
   const [error, setError] = useState("");
@@ -37,7 +38,7 @@ export default function LocationRequiredPage() {
         navigator.geolocation.getCurrentPosition(
           (pos) => {
             const { latitude, longitude, accuracy: acc } = pos.coords || {};
-            const d = haversineKm(latitude, longitude, KEDAI_LAT, KEDAI_LNG);
+            const d = haversineKm(latitude, longitude, kedaiLat, kedaiLng);
             setDistanceKm(d);
             if (typeof acc === "number") setAccuracy(acc);
             resolve();
