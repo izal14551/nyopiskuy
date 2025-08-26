@@ -3,8 +3,8 @@
 import { useState, useEffect, useMemo } from "react";
 import Image from "next/image";
 
-const KEDAI_LAT = -7.438613137162484;
-const KEDAI_LNG = 109.26562729846823;
+const KEDAI_LAT = -7.441978459503339;
+const KEDAI_LNG = 109.27104532419972;
 const MAX_DISTANCE_KM = 0.2;
 
 export default function MenuGrid() {
