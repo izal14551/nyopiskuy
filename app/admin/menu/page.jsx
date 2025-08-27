@@ -139,6 +139,9 @@ export default function ManageMenuPage() {
                 <p className="text-xs text-gray-600 min-h-[2.5rem] mb-1">
                   {menu.description}
                 </p>
+                <p className=" text-xs text-gray-600 mb-1 ">
+                  HPP: Rp. {menu.hpp?.toLocaleString("id-ID") || "0"}
+                </p>
                 <p className="font-bold text-sm text-black mb-2">
                   Rp. {menu.price.toLocaleString("id-ID")}
                 </p>
