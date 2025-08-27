@@ -236,11 +236,7 @@ export default function FinanceReportPage() {
             Total Pendapatan:{" "}
             <span className="font-bold text-green-700">{fmtIDR(total)}</span>
           </p>
-          <p className="text-sm text-gray-500">
-            Total Transaksi Selesai: {filteredOrders.length}
-          </p>
-        </div>
-        <div className="mb-4 bg-green-50 border border-green-200 p-4 rounded">
+
           <p className="text-gray-700">
             Total Laba:{" "}
             <span className="font-bold text-green-700">
