@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import AdminSidebar from "@/components/AdminSidebar";
 
 import { Line } from "react-chartjs-2";
@@ -52,40 +52,48 @@ export default function FinanceReportPage() {
     fetchData();
   }, []);
 
-  const filteredOrders = orders.filter((order) => {
-    const createdAt = new Date(order.created_at);
+  const filteredOrders = useMemo(() => {
     const start = startDate ? new Date(startDate) : null;
     const end = endDate ? new Date(endDate) : null;
+    return orders.filter((order) => {
+      const createdAt = new Date(order.created_at);
+      return (
+        (!start || createdAt >= start) &&
+        (!end || createdAt <= end) &&
+        isSameMonth(createdAt)
+      );
+    });
+  }, [orders, startDate, endDate]);
 
-    return (
-      (!start || createdAt >= start) &&
-      (!end || createdAt <= end) &&
-      isSameMonth(createdAt)
-    );
-  });
+  const total = filteredOrders.reduce(
+    (acc, curr) => acc + (curr.total || 0),
+    0
+  );
 
-  const total = filteredOrders.reduce((acc, curr) => acc + curr.total, 0);
+  // ===== Grafik: label tanggal 1..akhir bulan & total per hari
+  const fullMonthLabels = useMemo(
+    () =>
+      Array.from({ length: daysInMonth }, (_, i) =>
+        new Date(currentYear, currentMonth, i + 1).toLocaleDateString("id-ID")
+      ),
+    [daysInMonth, currentMonth, currentYear]
+  );
 
-  // Label tanggal (1..akhir bulan)
-  const fullMonthLabels = Array.from({ length: daysInMonth }, (_, i) => {
-    const date = new Date(currentYear, currentMonth, i + 1);
-    return date.toLocaleDateString("id-ID");
-  });
+  const dailyTotalsMap = useMemo(() => {
+    const map = {};
+    filteredOrders.forEach((o) => {
+      const d = new Date(o.created_at).toLocaleDateString("id-ID");
+      map[d] = (map[d] || 0) + (o.total || 0);
+    });
+    return map;
+  }, [filteredOrders]);
 
-  // Total per tanggal
-  const dailyTotals = {};
-  filteredOrders.forEach((o) => {
-    const date = new Date(o.created_at).toLocaleDateString("id-ID");
-    dailyTotals[date] = (dailyTotals[date] || 0) + o.total;
-  });
-
-  // Grafik (versi baru, halus + tooltip rupiah)
   const chartData = {
     labels: fullMonthLabels,
     datasets: [
       {
         label: "Pendapatan Harian",
-        data: fullMonthLabels.map((date) => dailyTotals[date] || 0),
+        data: fullMonthLabels.map((date) => dailyTotalsMap[date] || 0),
         borderColor: "#16a34a",
         backgroundColor: "#16a34a",
         borderWidth: 2,
@@ -126,7 +134,56 @@ export default function FinanceReportPage() {
     }
   };
 
+  // ===== RINGKASAN MENU (qty, pendapatan, HPP, laba)
+  const menuSummary = useMemo(() => {
+    const map = new Map();
+    filteredOrders.forEach((o) => {
+      const items = Array.isArray(o.items) ? o.items : [];
+      items.forEach((it) => {
+        const name =
+          it?.name ?? it?.menu_name ?? it?.title ?? "Item Tanpa Nama";
+        const qty = Number(it?.qty ?? it?.quantity ?? 1) || 0;
+        const price = Number(it?.price ?? it?.unit_price ?? 0) || 0;
+        const cost = Number(it?.cost ?? it?.hpp ?? 0) || 0;
+
+        if (!map.has(name)) {
+          map.set(name, { qty: 0, revenue: 0, cogs: 0, profit: 0 });
+        }
+        const row = map.get(name);
+        row.qty += qty;
+        row.revenue += price * qty;
+        row.cogs += cost * qty;
+        row.profit += (price - cost) * qty;
+      });
+    });
+
+    // urutkan by revenue desc
+    const rows = Array.from(map.entries()).map(([name, v]) => ({
+      name,
+      ...v
+    }));
+    rows.sort((a, b) => b.revenue - a.revenue);
+
+    const totals = rows.reduce(
+      (acc, r) => {
+        acc.qty += r.qty;
+        acc.revenue += r.revenue;
+        acc.cogs += r.cogs;
+        acc.profit += r.profit;
+        return acc;
+      },
+      { qty: 0, revenue: 0, cogs: 0, profit: 0 }
+    );
+
+    return { rows, totals };
+  }, [filteredOrders]);
+
   const handlePrint = () => window.print();
+
+  const fmtIDR = (n) =>
+    `Rp ${Number(n || 0).toLocaleString("id-ID", {
+      maximumFractionDigits: 0
+    })}`;
 
   return (
     <div>
@@ -173,16 +230,14 @@ export default function FinanceReportPage() {
           </div>
         </div>
 
-        {/* Ringkasan */}
+        {/* Ringkasan total */}
         <div className="mb-4 bg-green-50 border border-green-200 p-4 rounded">
           <p className="text-gray-700">
             Total Pendapatan:{" "}
-            <span className="font-bold text-green-700">
-              Rp {total.toLocaleString("id-ID")}
-            </span>
+            <span className="font-bold text-green-700">{fmtIDR(total)}</span>
           </p>
           <p className="text-sm text-gray-500">
-            Dari {filteredOrders.length} pesanan selesai
+            Total Transaksi Selesai: {filteredOrders.length}
           </p>
         </div>
 
@@ -200,15 +255,81 @@ export default function FinanceReportPage() {
           )}
         </div>
 
-        {/* Dropdown / Accordion: Histori Pembelian */}
+        {/* RINGKASAN PENJUALAN PER MENU (ikut tercetak) */}
+        <div className="bg-white p-4 rounded shadow mb-4">
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="font-bold">Ringkasan Penjualan per Menu</h2>
+            <p className="text-xs text-gray-500">
+              {new Date(currentYear, currentMonth).toLocaleDateString("id-ID", {
+                month: "long",
+                year: "numeric"
+              })}
+            </p>
+          </div>
+
+          {menuSummary.rows.length === 0 ? (
+            <p className="text-sm text-gray-500">
+              Belum ada data item terjual.
+            </p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-sm">
+                <thead className="bg-gray-50">
+                  <tr className="text-left text-gray-600">
+                    <th className="py-2 px-3">Menu</th>
+                    <th className="py-2 px-3">Qty</th>
+                    <th className="py-2 px-3">Pendapatan</th>
+                    <th className="py-2 px-3">HPP</th>
+                    <th className="py-2 px-3">Laba</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {menuSummary.rows.map((r) => (
+                    <tr
+                      key={r.name}
+                      className="even:bg-white odd:bg-gray-50/40"
+                    >
+                      <td className="py-2 px-3 font-medium">{r.name}</td>
+                      <td className="py-2 px-3">{r.qty}</td>
+                      <td className="py-2 px-3">{fmtIDR(r.revenue)}</td>
+                      <td className="py-2 px-3">{fmtIDR(r.cogs)}</td>
+                      <td className="py-2 px-3 font-semibold">
+                        {fmtIDR(r.profit)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr className="border-t bg-gray-50 font-semibold">
+                    <td className="py-2 px-3">Total</td>
+                    <td className="py-2 px-3">{menuSummary.totals.qty}</td>
+                    <td className="py-2 px-3">
+                      {fmtIDR(menuSummary.totals.revenue)}
+                    </td>
+                    <td className="py-2 px-3">
+                      {fmtIDR(menuSummary.totals.cogs)}
+                    </td>
+                    <td className="py-2 px-3">
+                      {fmtIDR(menuSummary.totals.profit)}
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          )}
+          <p className="text-[11px] text-gray-500 mt-2">
+            *Jika HPP/cost item tidak tersedia, dianggap 0.
+          </p>
+        </div>
+
+        {/* Dropdown Histori Pembelian (agar page tidak panjang) */}
         <details className="bg-white border rounded shadow">
           <summary className="cursor-pointer select-none list-none px-4 py-3 font-medium flex items-center justify-between">
             <span>Histori Pembelian</span>
             <svg
-              className="ml-2 h-4 w-4 transition-transform group-open:rotate-180"
+              className="ml-2 h-4 w-4"
               viewBox="0 0 20 20"
               fill="currentColor"
-              aria-hidden="true"
             >
               <path
                 fillRule="evenodd"
@@ -235,8 +356,29 @@ export default function FinanceReportPage() {
                       {new Date(order.created_at).toLocaleDateString("id-ID")}
                     </span>
                   </div>
-                  <p className="mt-1">Nama: {order.customer_name}</p>
-                  <p>Total: Rp {order.total.toLocaleString("id-ID")}</p>
+                  <p className="mt-1">Nama: {order.customer_name || "-"}</p>
+                  <p>Total: {fmtIDR(order.total)}</p>
+
+                  {/* Optional: tampilkan item per order (ringkas) */}
+                  {Array.isArray(order.items) && order.items.length > 0 && (
+                    <ul className="mt-2 text-xs text-gray-600 list-disc list-inside">
+                      {order.items.map((it, idx) => {
+                        const nm =
+                          it?.name ??
+                          it?.menu_name ??
+                          it?.title ??
+                          `Item ${idx + 1}`;
+                        const q = Number(it?.qty ?? it?.quantity ?? 1) || 0;
+                        const pr =
+                          Number(it?.price ?? it?.unit_price ?? 0) || 0;
+                        return (
+                          <li key={idx}>
+                            {nm} — {q} x {fmtIDR(pr)} = {fmtIDR(q * pr)}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
                 </div>
               ))}
             </div>
@@ -252,6 +394,12 @@ export default function FinanceReportPage() {
           }
           #print-report {
             padding: 0 !important;
+          }
+          /* Hilangkan shadow/border agar hemat tinta */
+          .shadow,
+          .shadow-sm,
+          .border {
+            box-shadow: none !important;
           }
           @page {
             size: A4;

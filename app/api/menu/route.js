@@ -7,6 +7,7 @@ export async function POST(req) {
   const name = formData.get("name");
   const description = formData.get("description");
   const price = parseInt(formData.get("price"));
+  const hpp = parseInt(formData.get("hpp") || "0", 10);
   const category = formData.get("category");
   const estimated_time = parseInt(formData.get("estimated_time"));
   const file = formData.get("image");
@@ -16,9 +17,9 @@ export async function POST(req) {
     const buffer = Buffer.from(await file.arrayBuffer());
 
     await db.query(
-      `INSERT INTO menu (name, description, price, category, estimated_time, image)
-       VALUES ($1, $2, $3, $4, $5, $6)`,
-      [name, description, price, category, estimated_time, buffer]
+      `INSERT INTO menu (name, description, price, category, estimated_time, image, hpp)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      [name, description, price, category, estimated_time, buffer, hpp]
     );
 
     return new Response(JSON.stringify({ success: true }), { status: 201 });
@@ -34,7 +35,7 @@ export async function POST(req) {
 export async function GET() {
   try {
     const result = await db.query(
-      "SELECT id, name, description, price, category, sold_out, estimated_time FROM menu ORDER BY id DESC"
+      "SELECT id, name, description, price, hpp, category, sold_out, estimated_time FROM menu ORDER BY id DESC"
     );
     return NextResponse.json(result.rows);
   } catch (error) {

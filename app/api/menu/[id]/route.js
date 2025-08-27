@@ -12,7 +12,7 @@ export async function GET(req, ctx) {
 
   try {
     const result = await db.query(
-      `SELECT id, name, description, price, category, estimated_time
+      `SELECT id, name, description, price, category, estimated_time, hpp
        FROM menu
        WHERE id = $1`,
       [id]
@@ -45,6 +45,7 @@ export async function POST(req, ctx) {
     const name = formData.get("name")?.toString().trim() ?? "";
     const description = formData.get("description")?.toString().trim() ?? "";
     const price = Number.parseInt(formData.get("price"), 10);
+    const hpp = parseInt(formData.get("hpp") || "0", 10);
     const category = formData.get("category")?.toString().trim() ?? "";
     const estimated_time = Number.parseInt(formData.get("estimated_time"), 10);
     const imageFile = formData.get("image");
@@ -61,16 +62,16 @@ export async function POST(req, ctx) {
       const buffer = Buffer.from(await imageFile.arrayBuffer());
       await db.query(
         `UPDATE menu
-         SET name=$1, description=$2, price=$3, category=$4, estimated_time=$5, image=$6
-         WHERE id=$7`,
-        [name, description, price, category, estimated_time, buffer, id]
+         SET name=$1, description=$2, price=$3, category=$4, estimated_time=$5, image=$6, hpp=$7
+         WHERE id=$8`,
+        [name, description, price, category, estimated_time, buffer, hpp, id]
       );
     } else {
       await db.query(
         `UPDATE menu
-         SET name=$1, description=$2, price=$3, category=$4, estimated_time=$5
-         WHERE id=$6`,
-        [name, description, price, category, estimated_time, id]
+         SET name=$1, description=$2, price=$3, category=$4, estimated_time=$5, hpp=$6
+         WHERE id=$7`,
+        [name, description, price, category, estimated_time, hpp, id]
       );
     }
 

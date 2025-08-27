@@ -9,6 +9,7 @@ export default function AddMenuPage() {
     name: "",
     description: "",
     price: "",
+    hpp: "",
     category: "",
     estimated_time: ""
   });
@@ -72,6 +73,7 @@ export default function AddMenuPage() {
     formData.append("name", form.name);
     formData.append("description", form.description);
     formData.append("price", form.price);
+    formData.append("hpp", form.hpp);
     formData.append("category", categoryToUse);
     formData.append("estimated_time", form.estimated_time);
     formData.append("image", file);
@@ -92,6 +94,7 @@ export default function AddMenuPage() {
         name: "",
         description: "",
         price: "",
+        hpp: "",
         category: "",
         estimated_time: ""
       });
@@ -147,6 +150,23 @@ export default function AddMenuPage() {
             className="w-full px-4 py-2 bg-gray-100 rounded"
             required
           />
+        </div>
+        <div>
+          <label className="font-semibold block mb-1">HPP (modal)</label>
+          <input
+            type="number"
+            name="hpp"
+            value={form.hpp}
+            onChange={(e) =>
+              setForm((prev) => ({ ...prev, hpp: e.target.value }))
+            }
+            className="w-full px-4 py-2 bg-gray-100 rounded"
+            required
+            min={0}
+          />
+          <p className="text-xs text-gray-500 mt-1">
+            Isi harga modal per 1 porsi.
+          </p>
         </div>
 
         <div>

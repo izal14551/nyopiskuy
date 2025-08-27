@@ -14,6 +14,7 @@ export default function EditMenuPage() {
     name: "",
     description: "",
     price: "",
+    hpp: "",
     category: "",
     estimated_time: ""
   });
@@ -45,6 +46,7 @@ export default function EditMenuPage() {
           name: menuData.name ?? "",
           description: menuData.description ?? "",
           price: menuData.price ?? "",
+          hpp: menuData.hpp ?? "",
           category: menuData.category ?? "",
           estimated_time: menuData.estimated_time?.toString() ?? ""
         });
@@ -147,6 +149,21 @@ export default function EditMenuPage() {
             onChange={handleChange}
             className="w-full px-4 py-2 bg-gray-100 rounded"
             required
+          />
+        </div>
+
+        <div>
+          <label className="font-semibold block mb-1">HPP (modal)</label>
+          <input
+            type="number"
+            name="hpp"
+            value={form.hpp}
+            onChange={(e) =>
+              setForm((prev) => ({ ...prev, hpp: e.target.value }))
+            }
+            className="w-full px-4 py-2 bg-gray-100 rounded"
+            required
+            min={0}
           />
         </div>
 
