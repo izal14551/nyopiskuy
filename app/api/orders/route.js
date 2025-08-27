@@ -6,21 +6,40 @@ export async function POST(req) {
   const { customerName, paymentMethod, cart, total, orderNote } = body;
 
   // Hitung estimasi total waktu penyajian
-  const estimated = cart.reduce(
-    (total, item) => total + (item.estimated_time ?? 0) * item.qty,
-    0
-  );
+  const estimated = Array.isArray(cart)
+    ? cart.reduce(
+        (acc, item) =>
+          acc + (Number(item?.estimated_time) || 0) * (Number(item?.qty) || 0),
+        0
+      )
+    : 0;
+
+  // Ambil id menu unik untuk ambil HPP dari tabel menu
+  const menuIds = Array.isArray(cart)
+    ? [...new Set(cart.map((it) => Number(it?.id)).filter(Boolean))]
+    : [];
 
   try {
-    // Simpan pesanan ke tabel orders, termasuk estimated_time
+    // Ambil data HPP dari menu (id, name, hpp)
+    let menuMap = new Map();
+    if (menuIds.length > 0) {
+      const { rows: menus } = await db.query(
+        `SELECT id, name, hpp FROM menu WHERE id = ANY($1)`,
+        [menuIds]
+      );
+      menuMap = new Map(menus.map((m) => [Number(m.id), m]));
+    }
+
+    // Simpan pesanan ke tabel orders
     const orderResult = await db.query(
       `INSERT INTO orders 
         (customer_name, payment_method, total, status, estimated_time, note) 
-       VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
+       VALUES ($1, $2, $3, $4, $5, $6)
+       RETURNING id`,
       [
-        customerName,
-        paymentMethod,
-        total,
+        customerName ?? null,
+        paymentMethod ?? null,
+        Number(total) || 0,
         "Diproses",
         estimated,
         orderNote ?? null
@@ -29,20 +48,28 @@ export async function POST(req) {
 
     const orderId = orderResult.rows[0].id;
 
-    // Simpan setiap item dari cart ke order_items
-    for (const item of cart) {
+    // Simpan setiap item dari cart ke order_items (dengan cost/HPP)
+    for (const item of cart || []) {
+      const menuId = Number(item?.id) || null;
+      const menuRef = menuId ? menuMap.get(menuId) : null;
+
+      const qty = Number(item?.qty) || 0;
+      const price = Number(item?.price) || 0;
+
+      // Prioritas sumber HPP: item.cost/hpp -> menu.hpp -> 0
+      const itemCost =
+        Number(item?.cost ?? item?.hpp) || Number(menuRef?.hpp ?? 0);
+
+      const name =
+        item?.name ?? item?.menu_name ?? menuRef?.name ?? "Item Tanpa Nama";
+
+      const est = Number(item?.estimated_time) || 0;
+
       await db.query(
         `INSERT INTO order_items 
-          (order_id, menu_id, name, qty, price, estimated_time) 
-         VALUES ($1, $2, $3, $4, $5, $6)`,
-        [
-          orderId,
-          item.id,
-          item.name,
-          item.qty,
-          item.price,
-          item.estimated_time ?? 0
-        ]
+          (order_id, menu_id, name, qty, price, estimated_time, cost) 
+         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        [orderId, menuId, name, qty, price, est, itemCost]
       );
     }
 
